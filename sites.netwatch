@@ -1,0 +1,37 @@
+name: sites
+config:
+  requests:
+    window: 60 # seconds
+    maxConcurrent: 10 # max concurrent requests in window
+    maxTotal: 100 # max total requests in window
+    maxPerHost: 10 # max requests to a single host in window
+    timeout: 10 # http timeout in seconds
+
+  recrawl:
+    enabled: true # whether to recrawl a site after a timeout
+    timeout: 60 # timeout for recrawling sites
+  
+  links:
+    crawl: true # whether to crawl links found within the site
+    pattern: * # regex pattern to match links
+    selector: body # css selector to find links inside
+    maxDepth: 5 # max depth to crawl
+
+  roam: true # whether to crawl sites that are not in this config file, but are linked to from these sites
+
+sites:
+  - url: https://www.example.com # config below overrides the global config
+    links:
+      crawl: true
+      pattern: https://www.example.com/*
+      selector: nav#mainnav
+      maxDepth: 3
+    content:
+      - name: title
+        selector: title
+      - name: description
+        selector: meta[name="description"]
+      - name: author
+        selector: '#author'
+      - name: content
+        selector: main.page-content
