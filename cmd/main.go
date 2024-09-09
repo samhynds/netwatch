@@ -3,11 +3,20 @@ package main
 import (
 	"log"
 	"netwatch/internal/pkg/config"
+	"netwatch/internal/pkg/crawl"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
-	defer cleanup()
+	// defer cleanup()
+
 	log.Println("NetWatch is starting...")
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// 1. Load and parse the .netwatch file provided by the user
 	cfg, err := config.Load("./sites.netwatch")
@@ -15,27 +24,36 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println(cfg)
+	// 2. Set up channels and Crawl Manager
+	queue, _ := crawl.NewManager(cfg)
 
-	// 2. Set up channels for the crawl queue
-	crawlQueue := make(chan string, 100)
-
-	// 3. Set up the Crawl Manager
-	crawlManager := crawl.NewCrawlManager(&crawlQueue)
-
-	// 4. Set up crawl workers
+	// 3. Set up crawl workers
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
-		go crawlWorker(crawlManager.readyQueue)
+		go func() {
+			for url := range queue {
+				go crawl.Worker(url)
+			}
+		}()
 	}
 
-	// 5. Set up the transport queue
-	transportQueue := make(chan string, 100)
+	time.Sleep(time.Second)
+	queue <- "meowdy"
+	time.Sleep(time.Second)
 
-	// 6. Set up the transport manager
-	transportManager := transport.NewTransportManager(&transportQueue)
+	<-sigChan
 
-	// 7. Set up transport workers
-	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
-		go transportWorker(transportManager.readyQueue)
-	}
+	log.Println("Shutting down...")
+	// Perform cleanup then...
+	os.Exit(0)
+
+	// // 5. Set up the transport queue
+	// transportQueue := make(chan string, 100)
+
+	// // 6. Set up the transport manager
+	// transportManager := transport.NewTransportManager(&transportQueue)
+
+	// // 7. Set up transport workers
+	// for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
+	// 	go transportWorker(transportManager)
+	// }
 }

@@ -2,7 +2,7 @@ name: sites
 config:
   requests:
     window: 60 # seconds
-    maxConcurrent: 10 # max concurrent requests in window
+    maxConcurrent: 4 # max concurrent requests in window
     maxTotal: 100 # max total requests in window
     maxPerHost: 10 # max requests to a single host in window
     timeout: 10 # http timeout in seconds
@@ -51,3 +51,6 @@ sites:
         selector: '#author'
       - name: content
         selector: main.page-content
+  - url: hello.io
+  - url: goodbye.net
+  - url: but-wait-theres-more.com
