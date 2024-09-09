@@ -19,6 +19,22 @@ config:
 
   roam: true # whether to crawl sites that are not in this config file, but are linked to from these sites
 
+  transporters:
+    - name: database
+      url: localhost
+      port: 5432
+      user: NW_DB_USER
+      password: NW_DB_PASSWORD
+      database: NW_DB_NAME
+    - name: queue
+      url: localhost
+      port: 6379
+      user: NW_QUEUE_USER
+      password: NW_QUEUE_PASSWORD
+    - name: websocket
+      url: localhost
+      port: 8080
+
 sites:
   - url: https://www.example.com # config below overrides the global config
     links:
