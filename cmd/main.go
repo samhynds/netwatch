@@ -4,6 +4,7 @@ import (
 	"log"
 	"netwatch/internal/pkg/config"
 	"netwatch/internal/pkg/crawl"
+	"netwatch/internal/pkg/ratelimiter"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,11 +28,19 @@ func main() {
 	// 2. Set up channels and Crawl Manager
 	queue, _ := crawl.NewManager(cfg)
 
+	// 3. Set up rate limiter
+	rateLimiter := ratelimiter.NewRateLimiter(
+		cfg.Config.Requests.MaxTotal,
+		cfg.Config.Requests.Window,
+	)
+
+	log.Println("Starting", cfg.Config.Requests.MaxConcurrent, "crawl workers...")
+	time.Sleep(time.Second)
 	// 3. Set up crawl workers
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
 			for url := range queue.Get() {
-				go crawl.Worker(url, cfg, queue)
+				crawl.Worker(url, cfg, queue, rateLimiter, i)
 			}
 		}()
 	}

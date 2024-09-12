@@ -14,7 +14,7 @@ func LinkExtractor(
 	body io.ReadCloser,
 	roam bool,
 	linkConfig *config.LinksConfig) ([]string, error) {
-	if !linkConfig.Crawl {
+	if !linkConfig.Crawl { // TODO: this is just the per-site config, check global too
 		return []string{}, nil
 	}
 

@@ -2,18 +2,26 @@ package crawl
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"netwatch/internal/pkg/config"
+	"netwatch/internal/pkg/ratelimiter"
 	"time"
 )
 
-func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue) ([]byte, error) {
+func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue, rateLimiter *ratelimiter.RateLimiter, i int) ([]byte, error) {
 	defer queue.MarkProcessed(url)
-	log.Println("Worker started with URL: ", url)
-	time.Sleep(time.Second)
+	log.Printf("Worker #%d started with URL: %s", i, url)
+
+	allowed, nextAllowedTime := rateLimiter.Allow()
+	log.Printf("Allowed: %t, Next allowed time: %v", allowed, nextAllowedTime)
+	if !allowed {
+		waitDuration := time.Until(nextAllowedTime)
+		log.Printf("Rate limit exceeded for %s. Next allowed time: %v (in %v)", url, nextAllowedTime, waitDuration)
+
+		time.Sleep(waitDuration)
+	}
 
 	// Find config that matches the url as a regex
 	siteConfig, err := config.SiteConfigForURL(url, loadedConfig)
@@ -36,11 +44,12 @@ func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue) ([]byte,
 
 	// Read Response Body
 	var bodyBuffer bytes.Buffer
-	body, err := io.ReadAll(io.TeeReader(res.Body, &bodyBuffer))
-	if err != nil {
-		log.Println("Error reading response body for", url)
-		return nil, err
-	}
+	io.ReadAll(io.TeeReader(res.Body, &bodyBuffer))
+	// body, err := io.ReadAll(io.TeeReader(res.Body, &bodyBuffer))
+	// if err != nil {
+	// 	log.Println("Error reading response body for", url)
+	// 	return nil, err
+	// }
 
 	// Extract Links
 	links, err := LinkExtractor(io.NopCloser(&bodyBuffer), loadedConfig.Config.Roam, &siteConfig.Links)
@@ -57,8 +66,8 @@ func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue) ([]byte,
 
 	// TODO: Extract content from site
 
-	fmt.Printf("\nLinks for %s: %s", url, links)
-	fmt.Printf("\nBody for %s: %s", url, string(body[0:50]))
+	// fmt.Printf("\nLinks for %s: %s", url, links)
+	// fmt.Printf("\nBody for %s: %s", url, string(body[0:50]))
 
 	// return or chan?
 	return nil, nil
