@@ -2,7 +2,7 @@ name: sites
 config:
   requests:
     window: 60 # seconds
-    maxConcurrent: 4 # max concurrent requests in window
+    maxConcurrent: 3 # max concurrent requests in window
     maxTotal: 100 # max total requests in window
     maxPerHost: 10 # max requests to a single host in window
     timeout: 10 # http timeout in seconds
@@ -36,10 +36,10 @@ config:
       port: 8080
 
 sites:
-  - url: https://www.example.com # config below overrides the global config
+  - url: https://techcrunch.com/category/artificial-intelligence/
     links:
       crawl: true
-      pattern: https://www.example.com/*
+      pattern: https://techcrunch.com/*
       selector: nav#mainnav
       maxDepth: 3
     content:
@@ -51,6 +51,26 @@ sites:
         selector: '#author'
       - name: content
         selector: main.page-content
-  - url: hello.io
-  - url: goodbye.net
-  - url: but-wait-theres-more.com
+  - url: https://techcrunch.com
+    links:
+      crawl: false
+  # - url: https://github.com # config below overrides the global config
+  #   links:
+  #     crawl: true
+  #     pattern: https://github.com/*
+  #     selector: nav#mainnav
+  #     maxDepth: 3
+  #   content:
+  #     - name: title
+  #       selector: title
+  #     - name: description
+  #       selector: meta[name="description"]
+  #     - name: author
+  #       selector: '#author'
+  #     - name: content
+  #       selector: main.page-content
+  # - url: https://pkg.go.dev/github.com/PuerkitoBio/goquery?utm_source=godoc
+  # - url: https://old.reddit.com
+  # - url: https://www.bbc.co.uk
+  # - url: https://news.sky.com/uk
+  # - url: https://www.theguardian.com/uk

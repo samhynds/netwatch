@@ -4,7 +4,7 @@ import "netwatch/internal/pkg/config"
 
 func NewManager(config *config.Config) (chan string, chan string) {
 	// Sites that are ready to be crawled
-	var queue = make(chan string, 100000) // (1.6mb empty)
+	var queue = make(chan string, 10) // (1.6mb empty)
 
 	// Sites to be recrawled periodically if enabled
 	var recrawlQueue = make(chan string, 100)

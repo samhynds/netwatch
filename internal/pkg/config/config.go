@@ -1,7 +1,10 @@
 package config
 
 import (
+	"errors"
+	"log"
 	"os"
+	"regexp"
 
 	"github.com/goccy/go-yaml"
 )
@@ -63,4 +66,20 @@ func Load(path string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+func SiteConfigForURL(url string, config *Config) (*SiteConfig, error) {
+	for _, site := range config.Sites {
+		regex, err := regexp.Compile(site.URL)
+		if err != nil {
+			log.Println("Error compiling site URL regex")
+			return nil, err
+		}
+
+		if regex.MatchString(url) {
+			return &site, nil
+		}
+	}
+
+	return nil, errors.New("no site config found for url")
 }

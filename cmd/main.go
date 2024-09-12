@@ -13,7 +13,7 @@ import (
 func main() {
 	// defer cleanup()
 
-	log.Println("NetWatch is starting...")
+	log.Println("Starting...")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -31,7 +31,7 @@ func main() {
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
 			for url := range queue {
-				go crawl.Worker(url)
+				go crawl.Worker(url, cfg, queue)
 			}
 		}()
 	}
