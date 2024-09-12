@@ -30,14 +30,15 @@ func main() {
 	// 3. Set up crawl workers
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
-			for url := range queue {
+			for url := range queue.Get() {
 				go crawl.Worker(url, cfg, queue)
 			}
 		}()
 	}
 
 	time.Sleep(time.Second)
-	queue <- "meowdy"
+	queue.Add("meowdy")
+	queue.Add("meowdy")
 	time.Sleep(time.Second)
 
 	<-sigChan

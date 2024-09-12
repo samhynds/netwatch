@@ -7,11 +7,13 @@ import (
 	"log"
 	"net/http"
 	"netwatch/internal/pkg/config"
+	"time"
 )
 
-func Worker(url string, loadedConfig *config.Config, queue chan string) ([]byte, error) {
+func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue) ([]byte, error) {
+	defer queue.MarkProcessed(url)
 	log.Println("Worker started with URL: ", url)
-	// time.Sleep(time.Second)
+	time.Sleep(time.Second)
 
 	// Find config that matches the url as a regex
 	siteConfig, err := config.SiteConfigForURL(url, loadedConfig)
@@ -41,7 +43,7 @@ func Worker(url string, loadedConfig *config.Config, queue chan string) ([]byte,
 	}
 
 	// Extract Links
-	links, err := LinkExtractor(io.NopCloser(&bodyBuffer), &siteConfig.Links)
+	links, err := LinkExtractor(io.NopCloser(&bodyBuffer), loadedConfig.Config.Roam, &siteConfig.Links)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
 		return nil, err
@@ -50,10 +52,10 @@ func Worker(url string, loadedConfig *config.Config, queue chan string) ([]byte,
 	// Send links to crawl queue - add link dedupe later
 	for _, link := range links {
 		log.Println("Adding:", link)
-		queue <- link
+		queue.Add(link)
 	}
 
-	// Extract content from site
+	// TODO: Extract content from site
 
 	fmt.Printf("\nLinks for %s: %s", url, links)
 	fmt.Printf("\nBody for %s: %s", url, string(body[0:50]))

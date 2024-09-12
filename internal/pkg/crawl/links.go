@@ -10,8 +10,11 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-func LinkExtractor(body io.ReadCloser, linkConfig *config.LinksConfig) ([]string, error) {
-	if linkConfig.Crawl == false {
+func LinkExtractor(
+	body io.ReadCloser,
+	roam bool,
+	linkConfig *config.LinksConfig) ([]string, error) {
+	if !linkConfig.Crawl {
 		return []string{}, nil
 	}
 
@@ -24,7 +27,7 @@ func LinkExtractor(body io.ReadCloser, linkConfig *config.LinksConfig) ([]string
 	var links []string
 	doc.Find("a[href]").Each(func(index int, element *goquery.Selection) {
 		href, exists := element.Attr("href")
-		if exists && linkFilter(href) && linkPatternMatch(href, *linkConfig) {
+		if exists && (roam || (linkFilter(href) && linkPatternMatch(href, *linkConfig))) {
 			links = append(links, href)
 		}
 	})
