@@ -3,17 +3,17 @@ config:
   requests:
     window: 60 # seconds
     maxConcurrent: 3 # max concurrent requests in window
-    maxTotal: 2 # max total requests in window
+    maxTotal: 10 # max total requests in window
     maxPerHost: 10 # max requests to a single host in window
     timeout: 10 # http timeout in seconds
 
   recrawl:
     enabled: true # whether to recrawl a site after a timeout
     timeout: 60 # timeout for recrawling sites
-  
+
   links:
     crawl: false # whether to crawl links found within the site
-    pattern: * # regex pattern to match links
+    pattern: '*' # regex pattern to match links
     selector: body # css selector to find links inside
     maxDepth: 5 # max depth to crawl
 
@@ -38,39 +38,39 @@ config:
 sites:
   - url: https://techcrunch.com/category/artificial-intelligence/
     links:
-      crawl: false
-      pattern: https://techcrunch.com/*
+      crawl: true
+      pattern: &techcrunch_links https://techcrunch.com/\d{4}/\d{2}/\d{2}/.*$
       selector: nav#mainnav
       maxDepth: 3
+  - urlRegExp: *techcrunch_links
+    links:
+      crawl: false
     content:
       - name: title
-        selector: title
+        selector: h1
       - name: description
         selector: meta[name="description"]
       - name: author
-        selector: '#author'
+        selector: .wp-block-tc23-author-card-name
       - name: content
-        selector: main.page-content
-  - url: https://techcrunch.com
-    links:
-      crawl: false
-  - url: https://github.com # config below overrides the global config
-    links:
-      crawl: false
-      pattern: https://github.com/*
-      selector: nav#mainnav
-      maxDepth: 3
-    content:
-      - name: title
-        selector: title
-      - name: description
-        selector: meta[name="description"]
-      - name: author
-        selector: '#author'
-      - name: content
-        selector: main.page-content
-  - url: https://pkg.go.dev/github.com/PuerkitoBio/goquery?utm_source=godoc
-  - url: https://old.reddit.com
-  - url: https://www.bbc.co.uk
-  - url: https://news.sky.com/uk
-  - url: https://www.theguardian.com/uk
+        selector: .wp-block-post-content
+  # - url: https://github.com # config below overrides the global config
+  #   links:
+  #     crawl: false
+  #     pattern: https://github.com/*
+  #     selector: nav#mainnav
+  #     maxDepth: 3
+  #   content:
+  #     - name: title
+  #       selector: title
+  #     - name: description
+  #       selector: meta[name="description"]
+  #     - name: author
+  #       selector: '#author'
+  #     - name: content
+  #       selector: main.page-content
+  # - url: https://pkg.go.dev/github.com/PuerkitoBio/goquery?utm_source=godoc
+  # - url: https://old.reddit.com
+  # - url: https://www.bbc.co.uk
+  # - url: https://news.sky.com/uk
+  # - url: https://www.theguardian.com/uk

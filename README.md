@@ -5,14 +5,16 @@ To Do:
     - Roam ✅
     - Extract Links ✅
     - Deduplicate Links ✅
-    - Rate limiting (from config & 429s)
+    - Rate limiting from config ✅
     - Extract Content
     - TransportQueue
     - TransportManager
     - TransportWorker
+    - RecrawlQueue
     - Save to DB, External Queue (AMQP), WebSocket 
 
 Later:
+    - HTTP 429
     - Auto Content Extraction
     - Auto Categorisation
     - CrawlQueue inQueue and processed will grow forever, need a way of trimming them down over time

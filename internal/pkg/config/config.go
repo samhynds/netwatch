@@ -43,9 +43,10 @@ type LinksConfig struct {
 }
 
 type SiteConfig struct {
-	URL     string          `yaml:"url"`
-	Links   LinksConfig     `yaml:"links"`
-	Content []ContentConfig `yaml:"content"`
+	URL       string          `yaml:"url"`
+	URLRegExp string          `yaml:"urlRegExp"`
+	Links     LinksConfig     `yaml:"links"`
+	Content   []ContentConfig `yaml:"content"`
 }
 
 type ContentConfig struct {
@@ -70,14 +71,20 @@ func Load(path string) (*Config, error) {
 
 func SiteConfigForURL(url string, config *Config) (*SiteConfig, error) {
 	for _, site := range config.Sites {
-		regex, err := regexp.Compile(site.URL)
-		if err != nil {
-			log.Println("Error compiling site URL regex")
-			return nil, err
-		}
+		if site.URLRegExp != "" {
+			regex, err := regexp.Compile(site.URLRegExp)
+			if err != nil {
+				log.Println("Error compiling site URL regex")
+				return nil, err
+			}
 
-		if regex.MatchString(url) {
-			return &site, nil
+			if regex.MatchString(url) {
+				return &site, nil
+			}
+		} else {
+			if site.URL == url {
+				return &site, nil
+			}
 		}
 	}
 

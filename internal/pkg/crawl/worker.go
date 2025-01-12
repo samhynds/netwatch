@@ -2,6 +2,7 @@ package crawl
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue, rateLimi
 	defer queue.MarkProcessed(url)
 	log.Printf("Worker #%d started with URL: %s", i, url)
 
+	// Check rate limit, sleep if needed
 	allowed, nextAllowedTime := rateLimiter.Allow()
 	log.Printf("Allowed: %t, Next allowed time: %v", allowed, nextAllowedTime)
 	if !allowed {
@@ -45,29 +47,30 @@ func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue, rateLimi
 	// Read Response Body
 	var bodyBuffer bytes.Buffer
 	io.ReadAll(io.TeeReader(res.Body, &bodyBuffer))
-	// body, err := io.ReadAll(io.TeeReader(res.Body, &bodyBuffer))
-	// if err != nil {
-	// 	log.Println("Error reading response body for", url)
-	// 	return nil, err
-	// }
 
-	// Extract Links
-	links, err := LinkExtractor(io.NopCloser(&bodyBuffer), loadedConfig.Config.Roam, &siteConfig.Links)
+	// Extract Links & Content
+	doc, err := NewContentExtractor(io.NopCloser(&bodyBuffer))
+	if err != nil {
+		log.Println("Error creating content extractor for", url)
+		return nil, err
+	}
+
+	links, err := LinkExtractor(doc, url, loadedConfig.Config.Roam, &siteConfig.Links)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
 		return nil, err
 	}
 
-	// Send links to crawl queue - add link dedupe later
-	for _, link := range links {
-		log.Println("Adding:", link)
-		queue.Add(link)
+	queue.AddMultiple(links)
+
+	content, err := ContentExtractor(doc, &siteConfig.Content)
+	if err != nil {
+		log.Println("Error parsing response body for", url)
+		return nil, err
 	}
 
-	// TODO: Extract content from site
-
-	// fmt.Printf("\nLinks for %s: %s", url, links)
-	// fmt.Printf("\nBody for %s: %s", url, string(body[0:50]))
+	fmt.Printf("\nLinks for %s: %s", url, links)
+	fmt.Printf("\nContent for %s: %s", url, content)
 
 	// return or chan?
 	return nil, nil

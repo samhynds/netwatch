@@ -34,6 +34,16 @@ func (cq *CrawlQueue) Add(url string) bool {
 	return true
 }
 
+func (cq *CrawlQueue) AddMultiple(urls []string) []string {
+	added := make([]string, 0, len(urls))
+	for _, url := range urls {
+		if cq.Add(url) {
+			added = append(added, url)
+		}
+	}
+	return added
+}
+
 func (cq *CrawlQueue) Get() <-chan string {
 	return cq.queue
 }
@@ -44,4 +54,10 @@ func (cq *CrawlQueue) MarkProcessed(url string) {
 
 	delete(cq.inQueue, url)
 	cq.processed[url] = true
+}
+
+func (cq *CrawlQueue) Close() {
+	cq.mu.Lock()
+	defer cq.mu.Unlock()
+	close(cq.queue)
 }

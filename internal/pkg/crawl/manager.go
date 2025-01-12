@@ -2,7 +2,12 @@ package crawl
 
 import "netwatch/internal/pkg/config"
 
-func NewManager(config *config.Config) (*CrawlQueue, chan string) {
+type Manager struct {
+	Queue        *CrawlQueue
+	RecrawlQueue chan string
+}
+
+func NewManager(config *config.Config) *Manager {
 	// Sites that are ready to be crawled
 	var queue = NewCrawlQueue(10)
 
@@ -18,5 +23,8 @@ func NewManager(config *config.Config) (*CrawlQueue, chan string) {
 		}
 	}
 
-	return queue, recrawlQueue
+	return &Manager{
+		Queue:        queue,
+		RecrawlQueue: recrawlQueue,
+	}
 }

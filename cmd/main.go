@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"netwatch/internal/pkg/config"
 	"netwatch/internal/pkg/crawl"
@@ -13,20 +14,22 @@ import (
 
 func main() {
 	// defer cleanup()
-
 	log.Println("Starting...")
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
+	configFile := flag.String("config", "./sites.netwatch", "Path to the .netwatch configuration file")
+	flag.Parse()
+
 	// 1. Load and parse the .netwatch file provided by the user
-	cfg, err := config.Load("./sites.netwatch")
+	cfg, err := config.Load(*configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// 2. Set up channels and Crawl Manager
-	queue, _ := crawl.NewManager(cfg)
+	manager := crawl.NewManager(cfg)
 
 	// 3. Set up rate limiter
 	rateLimiter := ratelimiter.NewRateLimiter(
@@ -39,16 +42,11 @@ func main() {
 	// 3. Set up crawl workers
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
-			for url := range queue.Get() {
-				crawl.Worker(url, cfg, queue, rateLimiter, i)
+			for url := range manager.Queue.Get() {
+				crawl.Worker(url, cfg, manager.Queue, rateLimiter, i)
 			}
 		}()
 	}
-
-	time.Sleep(time.Second)
-	queue.Add("meowdy")
-	queue.Add("meowdy")
-	time.Sleep(time.Second)
 
 	<-sigChan
 
