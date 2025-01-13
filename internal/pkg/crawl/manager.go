@@ -8,8 +8,8 @@ type Manager struct {
 }
 
 func NewManager(config *config.Config) *Manager {
-	// Sites that are ready to be crawled
-	var queue = NewCrawlQueue(10)
+	// Sites that are ready to be crawled (1m = ~16mb memory empty)
+	var queue = NewCrawlQueue(1_000_000)
 
 	// Sites to be recrawled periodically if enabled
 	var recrawlQueue = make(chan string, 100)

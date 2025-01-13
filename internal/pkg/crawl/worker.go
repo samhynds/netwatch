@@ -22,6 +22,7 @@ func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue, rateLimi
 		waitDuration := time.Until(nextAllowedTime)
 		log.Printf("Rate limit exceeded for %s. Next allowed time: %v (in %v)", url, nextAllowedTime, waitDuration)
 
+		// TODO: This consumes a worker for waitDuration, instead schedule this item to be processed later and continue with other items now
 		time.Sleep(waitDuration)
 	}
 

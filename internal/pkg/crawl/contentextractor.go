@@ -34,24 +34,41 @@ func ContentExtractor(doc *goquery.Document, contentConfig *[]config.ContentConf
 }
 
 func LinkExtractor(doc *goquery.Document, url string, roam bool, linkConfig *config.LinksConfig) ([]string, error) {
-	var links []string
+	var links = make(map[string]bool)
 
 	if !linkConfig.Crawl { // TODO: this is just the per-site config, check global too - maybe merge global and site config before this point
-		return links, nil
+		return nil, nil
 	}
 
 	doc.Find("a[href]").Each(func(index int, element *goquery.Selection) {
 		href, exists := element.Attr("href")
 		if exists && (roam || (linkFilter(href) && linkPatternMatch(href, *linkConfig))) {
-			if strings.HasPrefix(href, "/") {
-				links = append(links, url+href)
+			urlHasSlashSuffix := strings.HasSuffix(url, "/")
+			hrefHasSlashPrefix := strings.HasPrefix(href, "/")
+			hrefIsAbsolute := strings.HasPrefix(href, "http://") || strings.HasPrefix(href, "https://")
+
+			var fullUrl string
+
+			if hrefIsAbsolute {
+				fullUrl = href
+			} else if urlHasSlashSuffix && hrefHasSlashPrefix {
+				fullUrl = url[:len(url)-1] + href
+			} else if !urlHasSlashSuffix && !hrefHasSlashPrefix {
+				fullUrl = url + "/" + href
 			} else {
-				links = append(links, href)
+				fullUrl = url + href
 			}
+
+			links[fullUrl] = true
 		}
 	})
 
-	return links, nil
+	uniqueLinks := make([]string, 0, len(links))
+	for k := range links {
+		uniqueLinks = append(uniqueLinks, k)
+	}
+
+	return uniqueLinks, nil
 }
 
 // Removes links that we don't want to crawl
