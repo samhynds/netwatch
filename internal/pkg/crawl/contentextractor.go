@@ -24,10 +24,11 @@ func ContentExtractor(doc *goquery.Document, contentConfig *[]config.ContentConf
 	content := make(map[string]string)
 
 	for _, contentConfig := range *contentConfig {
-		var selector = contentConfig.Selector
-		var name = contentConfig.Name
+		selector := contentConfig.Selector
+		name := contentConfig.Name
+		text := doc.Find(selector).Text()
 
-		content[name] = doc.Find(selector).Text()
+		content[name] = strings.TrimSpace(text)
 	}
 
 	return content, nil
@@ -43,22 +44,7 @@ func LinkExtractor(doc *goquery.Document, url string, roam bool, linkConfig *con
 	doc.Find("a[href]").Each(func(index int, element *goquery.Selection) {
 		href, exists := element.Attr("href")
 		if exists && (roam || (linkFilter(href) && linkPatternMatch(href, *linkConfig))) {
-			urlHasSlashSuffix := strings.HasSuffix(url, "/")
-			hrefHasSlashPrefix := strings.HasPrefix(href, "/")
-			hrefIsAbsolute := strings.HasPrefix(href, "http://") || strings.HasPrefix(href, "https://")
-
-			var fullUrl string
-
-			if hrefIsAbsolute {
-				fullUrl = href
-			} else if urlHasSlashSuffix && hrefHasSlashPrefix {
-				fullUrl = url[:len(url)-1] + href
-			} else if !urlHasSlashSuffix && !hrefHasSlashPrefix {
-				fullUrl = url + "/" + href
-			} else {
-				fullUrl = url + href
-			}
-
+			fullUrl := normaliseUrl(href, url)
 			links[fullUrl] = true
 		}
 	})
@@ -69,6 +55,23 @@ func LinkExtractor(doc *goquery.Document, url string, roam bool, linkConfig *con
 	}
 
 	return uniqueLinks, nil
+}
+
+// Ensure we always get a properly-formatted full URL from a link
+func normaliseUrl(href string, url string) string {
+	urlHasSlashSuffix := strings.HasSuffix(url, "/")
+	hrefHasSlashPrefix := strings.HasPrefix(href, "/")
+	hrefIsAbsolute := strings.HasPrefix(href, "http://") || strings.HasPrefix(href, "https://")
+
+	if hrefIsAbsolute {
+		return href
+	} else if urlHasSlashSuffix && hrefHasSlashPrefix {
+		return url[:len(url)-1] + href
+	} else if !urlHasSlashSuffix && !hrefHasSlashPrefix {
+		return url + "/" + href
+	} else {
+		return url + href
+	}
 }
 
 // Removes links that we don't want to crawl

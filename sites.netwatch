@@ -17,7 +17,7 @@ config:
     selector: body # css selector to find links inside
     maxDepth: 5 # max depth to crawl
 
-  roam: true # whether to crawl sites that are not in this config file, but are linked to from these sites
+  roam: false # whether to crawl sites that are not in this config file, but are linked to from these sites
 
   transporters:
     - name: database
@@ -36,12 +36,14 @@ config:
       port: 8080
 
 sites:
+
   - url: https://techcrunch.com/category/artificial-intelligence/
     links:
       crawl: true
       pattern: &techcrunch_links https://techcrunch.com/\d{4}/\d{2}/\d{2}/.*$
       selector: nav#mainnav
       maxDepth: 3
+
   - urlRegExp: *techcrunch_links
     links:
       crawl: false
@@ -54,6 +56,7 @@ sites:
         selector: .wp-block-tc23-author-card-name
       - name: content
         selector: .wp-block-post-content
+
   # - url: https://github.com # config below overrides the global config
   #   links:
   #     crawl: false
