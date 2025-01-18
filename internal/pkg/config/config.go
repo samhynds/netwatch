@@ -20,6 +20,7 @@ type GlobalConfig struct {
 	Recrawl  RecrawlConfig  `yaml:"recrawl"`
 	Links    LinksConfig    `yaml:"links"`
 	Roam     bool           `yaml:"roam"`
+	Queue    QueueConfig    `yaml:"queue"`
 }
 
 type RequestsConfig struct {
@@ -40,6 +41,10 @@ type LinksConfig struct {
 	Pattern  string `yaml:"pattern"`
 	Selector string `yaml:"selector"`
 	MaxDepth int    `yaml:"maxDepth"`
+}
+
+type QueueConfig struct {
+	Capacity int `yaml:"capacity"`
 }
 
 type SiteConfig struct {

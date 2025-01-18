@@ -6,7 +6,7 @@ To Do:
     - Extract Links ✅
     - Deduplicate Links ✅
     - Rate limiting from config ✅
-    - Extract Content
+    - Extract Content ✅
     - TransportQueue
     - TransportManager
     - TransportWorker
@@ -18,3 +18,16 @@ Later:
     - Auto Content Extraction
     - Auto Categorisation
     - CrawlQueue inQueue and processed will grow forever, need a way of trimming them down over time
+
+
+Transport
+    - AMQP
+    - DB (postgres)
+    - WebSocket
+    - Data:
+        - URL
+        - timestamp
+        - content (could be any key, value is string)
+        - links
+        - full body
+        - headers

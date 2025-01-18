@@ -8,10 +8,17 @@ import (
 	"net/http"
 	"netwatch/internal/pkg/config"
 	"netwatch/internal/pkg/ratelimiter"
+	"netwatch/internal/pkg/transporter"
 	"time"
 )
 
-func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue, rateLimiter *ratelimiter.RateLimiter, i int) ([]byte, error) {
+func Worker(
+	url string,
+	loadedConfig *config.Config,
+	queue *CrawlQueue,
+	rateLimiter *ratelimiter.RateLimiter,
+	i int,
+) (transporter.TransportQueueItem, error) {
 	defer queue.MarkProcessed(url)
 	log.Printf("Worker #%d started with URL: %s", i, url)
 
@@ -30,7 +37,7 @@ func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue, rateLimi
 	siteConfig, err := config.SiteConfigForURL(url, loadedConfig)
 	if err != nil {
 		log.Println("Error finding site config for", url)
-		return nil, err
+		return transporter.TransportQueueItem{}, err
 	}
 
 	log.Println("Site config for", url, "is", siteConfig)
@@ -40,7 +47,7 @@ func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue, rateLimi
 	if err != nil {
 		log.Println("Error making request to", url)
 		log.Println(err)
-		return nil, err
+		return transporter.TransportQueueItem{}, err
 	}
 
 	defer res.Body.Close()
@@ -53,26 +60,30 @@ func Worker(url string, loadedConfig *config.Config, queue *CrawlQueue, rateLimi
 	doc, err := NewContentExtractor(io.NopCloser(&bodyBuffer))
 	if err != nil {
 		log.Println("Error creating content extractor for", url)
-		return nil, err
+		return transporter.TransportQueueItem{}, err
 	}
 
 	links, err := LinkExtractor(doc, url, loadedConfig.Config.Roam, &siteConfig.Links)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return nil, err
+		return transporter.TransportQueueItem{}, err
 	}
-
-	queue.AddMultiple(links)
 
 	content, err := ContentExtractor(doc, &siteConfig.Content)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return nil, err
+		return transporter.TransportQueueItem{}, err
 	}
 
 	fmt.Printf("\nLinks for %s: %s", url, links)
 	fmt.Printf("\nContent for %s: %s", url, content)
 
-	// return or chan?
-	return nil, nil
+	return transporter.TransportQueueItem{
+		URL:       url,
+		Timestamp: time.Now(),
+		Content:   content,
+		Links:     links,
+		Body:      bodyBuffer.String(),
+		Headers:   res.Header,
+	}, nil
 }

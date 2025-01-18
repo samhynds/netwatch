@@ -19,6 +19,9 @@ config:
 
   roam: false # whether to crawl sites that are not in this config file, but are linked to from these sites
 
+  queue:
+    capacity: 1000000 # capacity for crawl and transport queues (each)
+
   transporters:
     - name: database
       url: localhost

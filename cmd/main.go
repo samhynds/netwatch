@@ -6,10 +6,10 @@ import (
 	"netwatch/internal/pkg/config"
 	"netwatch/internal/pkg/crawl"
 	"netwatch/internal/pkg/ratelimiter"
+	"netwatch/internal/pkg/transporter"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 func main() {
@@ -28,8 +28,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// 2. Set up channels and Crawl Manager
-	manager := crawl.NewManager(cfg)
+	// 2. Set up channels for crawling and transporting
+	crawlManager := crawl.NewManager(cfg)
+	transportManager := transporter.NewManager(cfg)
 
 	// 3. Set up rate limiter
 	rateLimiter := ratelimiter.NewRateLimiter(
@@ -38,30 +39,30 @@ func main() {
 	)
 
 	log.Println("Starting", cfg.Config.Requests.MaxConcurrent, "crawl workers...")
-	time.Sleep(time.Second)
 	// 3. Set up crawl workers
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
-			for url := range manager.Queue.Get() {
-				crawl.Worker(url, cfg, manager.Queue, rateLimiter, i)
+			for url := range crawlManager.Queue.Get() {
+				formattedResponse, err := crawl.Worker(url, cfg, crawlManager.Queue, rateLimiter, i)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+
+				crawlManager.Queue.AddMultiple(formattedResponse.Links)
+				transportManager.Queue.Add(formattedResponse)
 			}
 		}()
 	}
+
+	// // 7. Set up transport workers
+	// for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
+	// 	go transportWorker(transportManager)
+	// }
 
 	<-sigChan
 
 	log.Println("Shutting down...")
 	// Perform cleanup then...
 	os.Exit(0)
-
-	// // 5. Set up the transport queue
-	// transportQueue := make(chan string, 100)
-
-	// // 6. Set up the transport manager
-	// transportManager := transport.NewTransportManager(&transportQueue)
-
-	// // 7. Set up transport workers
-	// for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
-	// 	go transportWorker(transportManager)
-	// }
 }
