@@ -23,33 +23,20 @@ config:
     capacity: 1000000 # capacity for crawl and transport queues (each)
 
   transporters:
-    - name: database
-      url: localhost
-      port: 5432
-      user: NW_DB_USER
-      password: NW_DB_PASSWORD
-      database: NW_DB_NAME
-    - name: queue
-      url: localhost
-      port: 6379
-      user: NW_QUEUE_USER
-      password: NW_QUEUE_PASSWORD
-    - name: websocket
-      url: localhost
-      port: 8080
+    database: true # Set connection with env vars NW_DB_*
+    queue: true # Set connection with env vars NW_Q_*
 
 sites:
-
   - url: https://techcrunch.com/category/artificial-intelligence/
     links:
       crawl: true
       pattern: &techcrunch_links https://techcrunch.com/\d{4}/\d{2}/\d{2}/.*$
       selector: nav#mainnav
       maxDepth: 3
-
   - urlRegExp: *techcrunch_links
     links:
-      crawl: false
+      crawl: true
+      pattern: &techcrunch_links https://techcrunch.com/\d{4}/\d{2}/\d{2}/.*$
     content:
       - name: title
         selector: h1

@@ -2,7 +2,6 @@ package crawl
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -75,15 +74,21 @@ func Worker(
 		return transporter.TransportQueueItem{}, err
 	}
 
-	fmt.Printf("\nLinks for %s: %s", url, links)
-	fmt.Printf("\nContent for %s: %s", url, content)
+	docHtml, err := doc.Html()
+	if err != nil {
+		log.Println("Error parsing response body for", url)
+		return transporter.TransportQueueItem{}, err
+	}
+
+	// fmt.Printf("\nLinks for %s: %s", url, links)
+	// fmt.Printf("\nContent for %s: %s", url, content)
 
 	return transporter.TransportQueueItem{
 		URL:       url,
 		Timestamp: time.Now(),
 		Content:   content,
 		Links:     links,
-		Body:      bodyBuffer.String(),
+		Body:      docHtml,
 		Headers:   res.Header,
 	}, nil
 }

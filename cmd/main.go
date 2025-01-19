@@ -22,24 +22,24 @@ func main() {
 	configFile := flag.String("config", "./sites.netwatch", "Path to the .netwatch configuration file")
 	flag.Parse()
 
-	// 1. Load and parse the .netwatch file provided by the user
+	// Load and parse the .netwatch file provided by the user
 	cfg, err := config.Load(*configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// 2. Set up channels for crawling and transporting
+	// Set up channels for crawling and transporting
 	crawlManager := crawl.NewManager(cfg)
 	transportManager := transporter.NewManager(cfg)
 
-	// 3. Set up rate limiter
+	// Set up rate limiter
 	rateLimiter := ratelimiter.NewRateLimiter(
 		cfg.Config.Requests.MaxTotal,
 		cfg.Config.Requests.Window,
 	)
 
-	log.Println("Starting", cfg.Config.Requests.MaxConcurrent, "crawl workers...")
-	// 3. Set up crawl workers
+	// Start crawl workers
+	log.Println("Starting", cfg.Config.Requests.MaxConcurrent, "crawl workers")
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
 			for url := range crawlManager.Queue.Get() {
@@ -55,14 +55,21 @@ func main() {
 		}()
 	}
 
-	// // 7. Set up transport workers
-	// for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
-	// 	go transportWorker(transportManager)
-	// }
+	// Set up transporters
+	activeTransporters, err := transporter.setupTransporters(cfg)
 
+	// Start transport workers
+	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
+		go func() {
+			for item := range transportManager.Queue.Get() {
+				log.Println("Transporting", item.URL)
+				transporter.Worker()
+			}
+		}()
+	}
+
+	// Shutdown gracefully on SIGINT or SIGTERM
 	<-sigChan
-
 	log.Println("Shutting down...")
-	// Perform cleanup then...
 	os.Exit(0)
 }

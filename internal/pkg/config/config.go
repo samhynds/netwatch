@@ -16,11 +16,12 @@ type Config struct {
 }
 
 type GlobalConfig struct {
-	Requests RequestsConfig `yaml:"requests"`
-	Recrawl  RecrawlConfig  `yaml:"recrawl"`
-	Links    LinksConfig    `yaml:"links"`
-	Roam     bool           `yaml:"roam"`
-	Queue    QueueConfig    `yaml:"queue"`
+	Requests     RequestsConfig     `yaml:"requests"`
+	Recrawl      RecrawlConfig      `yaml:"recrawl"`
+	Links        LinksConfig        `yaml:"links"`
+	Roam         bool               `yaml:"roam"`
+	Queue        QueueConfig        `yaml:"queue"`
+	Transporters TransportersConfig `yaml:"transporters"`
 }
 
 type RequestsConfig struct {
@@ -45,6 +46,11 @@ type LinksConfig struct {
 
 type QueueConfig struct {
 	Capacity int `yaml:"capacity"`
+}
+
+type TransportersConfig struct {
+	Database bool `yaml:"database"`
+	Queue    bool `yaml:"queue"`
 }
 
 type SiteConfig struct {
