@@ -23,13 +23,13 @@ config:
     capacity: 1000000 # capacity for crawl and transport queues (each)
 
   transporters:
-    database: true # Set connection with env vars NW_DB_*
+    database: true # Set connection details with env var NW_DB_CONN_URL
     queue: true # Set connection with env vars NW_Q_*
 
 sites:
   - url: https://techcrunch.com/category/artificial-intelligence/
     links:
-      crawl: true
+      crawl: false
       pattern: &techcrunch_links https://techcrunch.com/\d{4}/\d{2}/\d{2}/.*$
       selector: nav#mainnav
       maxDepth: 3

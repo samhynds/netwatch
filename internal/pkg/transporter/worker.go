@@ -1,7 +1,17 @@
 package transporter
 
-import "netwatch/internal/pkg/config"
+import (
+	"netwatch/internal/pkg/transporter/database"
+	transporterqueue "netwatch/internal/pkg/transporter/queue"
 
-func Worker(item TransportQueueItem, activeTransporters *[]Transporter, loadedConfig *config.Config) {
+	"github.com/jackc/pgx/v5"
+)
 
+func Worker(item transporterqueue.QueueItem, dbConn *pgx.Conn, kafkaConn string) {
+
+	if dbConn != nil {
+		database.Send(item, dbConn)
+	}
+
+	// if kafka != nil {}
 }

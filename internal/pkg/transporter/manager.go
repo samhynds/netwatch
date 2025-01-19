@@ -1,13 +1,16 @@
 package transporter
 
-import "netwatch/internal/pkg/config"
+import (
+	"netwatch/internal/pkg/config"
+	transporterqueue "netwatch/internal/pkg/transporter/queue"
+)
 
 type Manager struct {
-	Queue *TransportQueue
+	Queue *transporterqueue.Queue
 }
 
 func NewManager(config *config.Config) *Manager {
-	queue := NewTransportQueue(config.Config.Queue.Capacity)
+	queue := transporterqueue.NewQueue(config.Config.Queue.Capacity)
 
 	return &Manager{
 		Queue: queue,

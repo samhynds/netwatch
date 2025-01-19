@@ -55,15 +55,15 @@ func main() {
 		}()
 	}
 
-	// Set up transporters
-	activeTransporters, err := transporter.setupTransporters(cfg)
+	// Set up transporter connections
+	dbConn, kafkaConn := transporter.SetupConnections(cfg)
 
 	// Start transport workers
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
 			for item := range transportManager.Queue.Get() {
 				log.Println("Transporting", item.URL)
-				transporter.Worker()
+				transporter.Worker(item, dbConn, kafkaConn)
 			}
 		}()
 	}

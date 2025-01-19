@@ -7,9 +7,9 @@ To Do:
     - Deduplicate Links ✅
     - Rate limiting from config ✅
     - Extract Content ✅
-    - TransportQueue
-    - TransportManager
-    - TransportWorker
+    - TransportQueue ✅
+    - TransportManager ✅
+    - TransportWorker ✅
     - RecrawlQueue
     - Save to DB, External Queue (AMQP), WebSocket 
 
@@ -31,3 +31,5 @@ Transport
         - links
         - full body
         - headers
+
+DB connect: export NW_DB_CONN_URL="postgres://netwatch:test@localhost:5432/netwatch"

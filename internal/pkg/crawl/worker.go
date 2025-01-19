@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"netwatch/internal/pkg/config"
 	"netwatch/internal/pkg/ratelimiter"
-	"netwatch/internal/pkg/transporter"
+	transporterqueue "netwatch/internal/pkg/transporter/queue"
 	"time"
 )
 
@@ -17,10 +17,9 @@ func Worker(
 	queue *CrawlQueue,
 	rateLimiter *ratelimiter.RateLimiter,
 	i int,
-) (transporter.TransportQueueItem, error) {
+) (transporterqueue.QueueItem, error) {
 	defer queue.MarkProcessed(url)
 	log.Printf("Worker #%d started with URL: %s", i, url)
-
 	// Check rate limit, sleep if needed
 	allowed, nextAllowedTime := rateLimiter.Allow()
 	log.Printf("Allowed: %t, Next allowed time: %v", allowed, nextAllowedTime)
@@ -36,7 +35,7 @@ func Worker(
 	siteConfig, err := config.SiteConfigForURL(url, loadedConfig)
 	if err != nil {
 		log.Println("Error finding site config for", url)
-		return transporter.TransportQueueItem{}, err
+		return transporterqueue.QueueItem{}, err
 	}
 
 	log.Println("Site config for", url, "is", siteConfig)
@@ -46,7 +45,7 @@ func Worker(
 	if err != nil {
 		log.Println("Error making request to", url)
 		log.Println(err)
-		return transporter.TransportQueueItem{}, err
+		return transporterqueue.QueueItem{}, err
 	}
 
 	defer res.Body.Close()
@@ -59,31 +58,31 @@ func Worker(
 	doc, err := NewContentExtractor(io.NopCloser(&bodyBuffer))
 	if err != nil {
 		log.Println("Error creating content extractor for", url)
-		return transporter.TransportQueueItem{}, err
+		return transporterqueue.QueueItem{}, err
 	}
 
 	links, err := LinkExtractor(doc, url, loadedConfig.Config.Roam, &siteConfig.Links)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return transporter.TransportQueueItem{}, err
+		return transporterqueue.QueueItem{}, err
 	}
 
 	content, err := ContentExtractor(doc, &siteConfig.Content)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return transporter.TransportQueueItem{}, err
+		return transporterqueue.QueueItem{}, err
 	}
 
 	docHtml, err := doc.Html()
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return transporter.TransportQueueItem{}, err
+		return transporterqueue.QueueItem{}, err
 	}
 
 	// fmt.Printf("\nLinks for %s: %s", url, links)
 	// fmt.Printf("\nContent for %s: %s", url, content)
 
-	return transporter.TransportQueueItem{
+	return transporterqueue.QueueItem{
 		URL:       url,
 		Timestamp: time.Now(),
 		Content:   content,
