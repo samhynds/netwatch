@@ -2,9 +2,9 @@ name: sites
 config:
   requests:
     window: 60 # seconds
-    maxConcurrent: 3 # max concurrent requests in window
-    maxTotal: 10 # max total requests in window
-    maxPerHost: 10 # max requests to a single host in window
+    maxConcurrent: 5 # max concurrent requests in window
+    maxTotal: 20 # max total requests in window
+    maxPerHost: 20 # max requests to a single host in window
     timeout: 10 # http timeout in seconds
 
   recrawl:
@@ -29,7 +29,7 @@ config:
 sites:
   - url: https://techcrunch.com/category/artificial-intelligence/
     links:
-      crawl: false
+      crawl: true
       pattern: &techcrunch_links https://techcrunch.com/\d{4}/\d{2}/\d{2}/.*$
       selector: nav#mainnav
       maxDepth: 3

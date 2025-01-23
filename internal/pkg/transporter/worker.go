@@ -4,13 +4,13 @@ import (
 	"netwatch/internal/pkg/transporter/database"
 	transporterqueue "netwatch/internal/pkg/transporter/queue"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Worker(item transporterqueue.QueueItem, dbConn *pgx.Conn, kafkaConn string) {
+func Worker(item transporterqueue.QueueItem, dbConnPool *pgxpool.Pool, kafkaConn string) {
 
-	if dbConn != nil {
-		database.Send(item, dbConn)
+	if dbConnPool != nil {
+		database.Send(item, dbConnPool)
 	}
 
 	// if kafka != nil {}

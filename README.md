@@ -11,13 +11,15 @@ To Do:
     - TransportManager ✅
     - TransportWorker ✅
     - RecrawlQueue
-    - Save to DB, External Queue (AMQP), WebSocket 
+    - Save to DB ✅
+    - External Queue 
 
 Later:
     - HTTP 429
     - Auto Content Extraction
     - Auto Categorisation
     - CrawlQueue inQueue and processed will grow forever, need a way of trimming them down over time
+    - Check if site already exists in db before crawling it
 
 
 Transport
