@@ -41,19 +41,22 @@ func main() {
 		cfg.Config.Requests.Window,
 	)
 
+	// Create a queue router (gets items from the correct queue and passes them to the worker)
+
 	// Start crawl workers
 	log.Println("Starting", cfg.Config.Requests.MaxConcurrent, "crawl workers")
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
-			for url := range crawlManager.Queue.Get() {
-				formattedResponse, err := crawl.Worker(url, cfg, crawlManager.Queue, rateLimiter, i)
+			// Use queue router
+			for url := range queues.Crawl.Get() {
+				formattedResponse, err := crawl.Worker(url, cfg, &queues.Crawl, rateLimiter, i)
 				if err != nil {
 					log.Println(err)
 					continue
 				}
 
-				crawlManager.Queue.AddMultiple(formattedResponse.Links)
-				transportManager.Queue.Add(formattedResponse)
+				queues.Crawl.AddMultiple(formattedResponse.Links)
+				queues.Transport.Add(formattedResponse)
 			}
 		}()
 	}
@@ -64,7 +67,7 @@ func main() {
 	// Start transport workers
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
 		go func() {
-			for item := range transportManager.Queue.Get() {
+			for item := range queues.Transport.Get() {
 				log.Println("Transporting", item.URL)
 				transporter.Worker(item, dbConn, kafkaConn)
 			}

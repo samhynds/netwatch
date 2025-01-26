@@ -6,18 +6,18 @@ import (
 	"log"
 	"net/http"
 	"netwatch/internal/pkg/config"
+	q "netwatch/internal/pkg/queue"
 	"netwatch/internal/pkg/ratelimiter"
-	transporterqueue "netwatch/internal/pkg/transporter/queue"
 	"time"
 )
 
 func Worker(
 	url string,
 	loadedConfig *config.Config,
-	queue *CrawlQueue,
+	queue *q.Queue[string],
 	rateLimiter *ratelimiter.RateLimiter,
 	i int,
-) (transporterqueue.QueueItem, error) {
+) (q.ProcessedQueueItem, error) {
 	defer queue.MarkProcessed(url)
 	log.Printf("Worker #%d started with URL: %s", i, url)
 	// Check rate limit, sleep if needed
@@ -35,7 +35,7 @@ func Worker(
 	siteConfig, err := config.SiteConfigForURL(url, loadedConfig)
 	if err != nil {
 		log.Println("Error finding site config for", url)
-		return transporterqueue.QueueItem{}, err
+		return q.ProcessedQueueItem{}, err
 	}
 
 	log.Println("Site config for", url, "is", siteConfig)
@@ -45,7 +45,7 @@ func Worker(
 	if err != nil {
 		log.Println("Error making request to", url)
 		log.Println(err)
-		return transporterqueue.QueueItem{}, err
+		return q.ProcessedQueueItem{}, err
 	}
 
 	defer res.Body.Close()
@@ -58,31 +58,31 @@ func Worker(
 	doc, err := NewContentExtractor(io.NopCloser(&bodyBuffer))
 	if err != nil {
 		log.Println("Error creating content extractor for", url)
-		return transporterqueue.QueueItem{}, err
+		return q.ProcessedQueueItem{}, err
 	}
 
 	links, err := LinkExtractor(doc, url, loadedConfig.Config.Roam, &siteConfig.Links)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return transporterqueue.QueueItem{}, err
+		return q.ProcessedQueueItem{}, err
 	}
 
 	content, err := ContentExtractor(doc, &siteConfig.Content)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return transporterqueue.QueueItem{}, err
+		return q.ProcessedQueueItem{}, err
 	}
 
 	docHtml, err := doc.Html()
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return transporterqueue.QueueItem{}, err
+		return q.ProcessedQueueItem{}, err
 	}
 
 	// fmt.Printf("\nLinks for %s: %s", url, links)
 	// fmt.Printf("\nContent for %s: %s", url, content)
 
-	return transporterqueue.QueueItem{
+	return q.ProcessedQueueItem{
 		URL:       url,
 		Timestamp: time.Now(),
 		Content:   content,

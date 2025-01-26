@@ -130,10 +130,10 @@ func (q *Queue[T]) AddMultiple(items []T) []T {
 	added := make([]T, 0, len(items))
 	for _, item := range items {
 		if q.Add(item) {
-			added = append(added, items)
+			added = append(added, item)
 		}
 	}
-	return items
+	return added
 }
 
 func (q *Queue[T]) Get() <-chan T {

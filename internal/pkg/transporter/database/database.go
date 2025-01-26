@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	transporterqueue "netwatch/internal/pkg/transporter/queue"
+	"netwatch/internal/pkg/queue"
 	"os"
 
 	"github.com/google/uuid"
@@ -30,7 +30,7 @@ func Setup() *pgxpool.Pool {
 	return dbConnPool
 }
 
-func Send(item transporterqueue.QueueItem, dbConnPool *pgxpool.Pool) {
+func Send(item queue.ProcessedQueueItem, dbConnPool *pgxpool.Pool) {
 	// saves a TransportQueueItem to the db
 	log.Println("Sending to DB")
 	id := uuid.New()
