@@ -33,8 +33,8 @@ type RequestsConfig struct {
 }
 
 type RecrawlConfig struct {
-	Enabled bool `yaml:"enabled"`
-	Timeout int  `yaml:"timeout"`
+	Enabled  bool `yaml:"enabled"`
+	Interval int  `yaml:"interval"`
 }
 
 type LinksConfig struct {

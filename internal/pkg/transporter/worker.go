@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func Worker(item queue.ProcessedQueueItem, dbConnPool *pgxpool.Pool, kafkaConn string) {
+func Worker(item queue.CrawledQueueItem, dbConnPool *pgxpool.Pool, kafkaConn string) {
 
 	if dbConnPool != nil {
 		database.Send(item, dbConnPool)

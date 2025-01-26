@@ -30,7 +30,7 @@ func Setup() *pgxpool.Pool {
 	return dbConnPool
 }
 
-func Send(item queue.ProcessedQueueItem, dbConnPool *pgxpool.Pool) {
+func Send(item queue.CrawledQueueItem, dbConnPool *pgxpool.Pool) {
 	// saves a TransportQueueItem to the db
 	log.Println("Sending to DB")
 	id := uuid.New()

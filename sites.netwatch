@@ -9,7 +9,7 @@ config:
 
   recrawl:
     enabled: true # whether to recrawl a site after a timeout
-    timeout: 60 # timeout for recrawling sites
+    interval: 60 # timeout for recrawling sites
 
   links:
     crawl: false # whether to crawl links found within the site

@@ -3,6 +3,7 @@ package queue
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"netwatch/internal/pkg/config"
 	"sync"
 	"time"
@@ -17,7 +18,7 @@ const (
 	TransportQueue
 )
 
-type Queue[T string | ProcessedQueueItem] struct {
+type Queue[T string | CrawledQueueItem | ScheduledQueueItem] struct {
 	Queue   chan T
 	inQueue map[string]bool
 	mu      sync.RWMutex
@@ -25,7 +26,7 @@ type Queue[T string | ProcessedQueueItem] struct {
 	parent  *Queues
 }
 
-type ProcessedQueueItem struct {
+type CrawledQueueItem struct {
 	URL       string
 	Timestamp time.Time
 	Content   map[string]string
@@ -34,18 +35,29 @@ type ProcessedQueueItem struct {
 	Headers   http.Header
 }
 
+type ScheduledQueueItem struct {
+	URL           string
+	TimeCrawlable time.Time
+}
+
+type ProcessedHost struct {
+	count int // Number of requests made to this host within the last window
+}
+
 type Queues struct {
-	Crawl     Queue[string]
-	Cooldown  Queue[string]
-	Recrawl   Queue[string]
-	Transport Queue[ProcessedQueueItem]
-	processed map[string]bool
-	mu        sync.RWMutex
+	Crawl          Queue[string]
+	Cooldown       Queue[ScheduledQueueItem]
+	Recrawl        Queue[ScheduledQueueItem]
+	Transport      Queue[CrawledQueueItem]
+	processedUrls  map[string]bool
+	processedHosts map[string]ProcessedHost
+	mu             sync.RWMutex
 }
 
 func NewQueue(config *config.Config) *Queues {
 	q := &Queues{
-		processed: make(map[string]bool),
+		processedUrls:  make(map[string]bool),
+		processedHosts: make(map[string]ProcessedHost),
 	}
 
 	q.Crawl = Queue[string]{
@@ -55,22 +67,22 @@ func NewQueue(config *config.Config) *Queues {
 		parent:  q,
 	}
 
-	q.Cooldown = Queue[string]{
-		Queue:   make(chan string, config.Config.Queue.Capacity),
+	q.Cooldown = Queue[ScheduledQueueItem]{
+		Queue:   make(chan ScheduledQueueItem, config.Config.Queue.Capacity),
 		inQueue: make(map[string]bool),
 		qType:   CooldownQueue,
 		parent:  q,
 	}
 
-	q.Recrawl = Queue[string]{
-		Queue:   make(chan string, len(config.Sites)),
+	q.Recrawl = Queue[ScheduledQueueItem]{
+		Queue:   make(chan ScheduledQueueItem, len(config.Sites)),
 		inQueue: make(map[string]bool),
 		qType:   RecrawlQueue,
 		parent:  q,
 	}
 
-	q.Transport = Queue[ProcessedQueueItem]{
-		Queue:   make(chan ProcessedQueueItem, config.Config.Queue.Capacity),
+	q.Transport = Queue[CrawledQueueItem]{
+		Queue:   make(chan CrawledQueueItem, config.Config.Queue.Capacity),
 		inQueue: make(map[string]bool),
 		qType:   TransportQueue,
 		parent:  q,
@@ -86,7 +98,10 @@ func (q *Queues) InitPopulation(config *config.Config) {
 
 	if config.Config.Recrawl.Enabled {
 		for _, site := range config.Sites {
-			q.Recrawl.Queue <- site.URL
+			q.Recrawl.Queue <- ScheduledQueueItem{
+				URL:           site.URL,
+				TimeCrawlable: time.Now().Add(time.Duration(config.Config.Recrawl.Interval) * time.Second),
+			}
 		}
 	}
 }
@@ -100,7 +115,8 @@ func (q *Queue[T]) Add(item T) bool {
 	switch v := any(item).(type) {
 	case string:
 		url = v
-	case ProcessedQueueItem:
+	case CrawledQueueItem:
+	case ScheduledQueueItem:
 		url = v.URL
 	}
 
@@ -112,7 +128,7 @@ func (q *Queue[T]) Add(item T) bool {
 	// Only check processed URLs for crawl queue
 	if q.qType == CrawlQueue {
 		q.parent.mu.RLock()
-		processed := q.parent.processed[url]
+		processed := q.parent.processedUrls[url]
 		q.parent.mu.RUnlock()
 
 		if processed {
@@ -146,19 +162,39 @@ func (q *Queue[T]) MarkProcessed(item T) {
 	switch v := any(item).(type) {
 	case string:
 		url = v
-	case ProcessedQueueItem:
+	case CrawledQueueItem:
 		url = v.URL
 	}
 
-	if q.qType == CrawlQueue {
-		q.parent.mu.Lock()
-		defer q.parent.mu.Unlock()
+	q.parent.mu.Lock()
+	defer q.parent.mu.Unlock()
 
-		delete(q.inQueue, url)
-		q.parent.processed[url] = true
-	} else {
-		log.Println("Cannot mark non-crawl queue items as processed", url)
+	delete(q.inQueue, url)
+	q.parent.processedUrls[url] = true
+
+	host, err := GetHostFromURL(url)
+	if err != nil {
+		log.Println("Error getting host for", url)
+		return
 	}
+
+	if existingHost, exists := q.parent.processedHosts[host]; exists {
+		q.parent.processedHosts[host] = ProcessedHost{
+			count: existingHost.count + 1,
+		}
+	} else {
+		q.parent.processedHosts[host] = ProcessedHost{
+			count: 1,
+		}
+	}
+}
+
+func GetHostFromURL(urlString string) (string, error) {
+	parsedURL, err := url.Parse(urlString)
+	if err != nil {
+		return "", err
+	}
+	return parsedURL.Hostname(), nil
 }
 
 func (q *Queue[T]) Close() {

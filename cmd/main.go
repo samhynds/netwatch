@@ -30,8 +30,6 @@ func main() {
 	}
 
 	// Set up channels for crawling and transporting
-	// crawlManager := crawl.NewManager(cfg)
-	// transportManager := transporter.NewManager(cfg)
 	queues := queue.NewQueue(cfg)
 	queues.InitPopulation(cfg)
 
@@ -41,24 +39,24 @@ func main() {
 		cfg.Config.Requests.Window,
 	)
 
-	// Create a queue router (gets items from the correct queue and passes them to the worker)
-
 	// Start crawl workers
 	log.Println("Starting", cfg.Config.Requests.MaxConcurrent, "crawl workers")
 	for i := 0; i < cfg.Config.Requests.MaxConcurrent; i++ {
-		go func() {
-			// Use queue router
-			for url := range queues.Crawl.Get() {
-				formattedResponse, err := crawl.Worker(url, cfg, &queues.Crawl, rateLimiter, i)
+		go func(workerID int) {
+			for {
+				url, queueSource := queues.GetNextItem(cfg)
+
+				formattedResponse, err := crawl.Worker(url, cfg, queueSource, &queues.Crawl, rateLimiter, workerID)
+
 				if err != nil {
-					log.Println(err)
+					log.Printf("Worker %d error: %v\n", workerID, err)
 					continue
 				}
 
 				queues.Crawl.AddMultiple(formattedResponse.Links)
 				queues.Transport.Add(formattedResponse)
 			}
-		}()
+		}(i)
 	}
 
 	// Set up transporter connections

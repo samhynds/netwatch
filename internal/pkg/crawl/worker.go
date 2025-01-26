@@ -11,15 +11,21 @@ import (
 	"time"
 )
 
-func Worker(
+func Worker[T string | q.CrawledQueueItem | q.ScheduledQueueItem](
 	url string,
 	loadedConfig *config.Config,
-	queue *q.Queue[string],
+	queues *q.Queues,
+	queueForItem *q.Queue[T],
 	rateLimiter *ratelimiter.RateLimiter,
 	i int,
-) (q.ProcessedQueueItem, error) {
-	defer queue.MarkProcessed(url)
+) (q.CrawledQueueItem, error) {
+	defer queueForItem.MarkProcessed(url)
 	log.Printf("Worker #%d started with URL: %s", i, url)
+
+	// Check if per host limit reached
+	// Check if queues.ProcessedHosts[host].count < config.maxPerHost
+	// If not, add url to queues.Cooldown
+
 	// Check rate limit, sleep if needed
 	allowed, nextAllowedTime := rateLimiter.Allow()
 	log.Printf("Allowed: %t, Next allowed time: %v", allowed, nextAllowedTime)
@@ -35,7 +41,7 @@ func Worker(
 	siteConfig, err := config.SiteConfigForURL(url, loadedConfig)
 	if err != nil {
 		log.Println("Error finding site config for", url)
-		return q.ProcessedQueueItem{}, err
+		return q.CrawledQueueItem{}, err
 	}
 
 	log.Println("Site config for", url, "is", siteConfig)
@@ -45,7 +51,7 @@ func Worker(
 	if err != nil {
 		log.Println("Error making request to", url)
 		log.Println(err)
-		return q.ProcessedQueueItem{}, err
+		return q.CrawledQueueItem{}, err
 	}
 
 	defer res.Body.Close()
@@ -58,31 +64,31 @@ func Worker(
 	doc, err := NewContentExtractor(io.NopCloser(&bodyBuffer))
 	if err != nil {
 		log.Println("Error creating content extractor for", url)
-		return q.ProcessedQueueItem{}, err
+		return q.CrawledQueueItem{}, err
 	}
 
 	links, err := LinkExtractor(doc, url, loadedConfig.Config.Roam, &siteConfig.Links)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return q.ProcessedQueueItem{}, err
+		return q.CrawledQueueItem{}, err
 	}
 
 	content, err := ContentExtractor(doc, &siteConfig.Content)
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return q.ProcessedQueueItem{}, err
+		return q.CrawledQueueItem{}, err
 	}
 
 	docHtml, err := doc.Html()
 	if err != nil {
 		log.Println("Error parsing response body for", url)
-		return q.ProcessedQueueItem{}, err
+		return q.CrawledQueueItem{}, err
 	}
 
 	// fmt.Printf("\nLinks for %s: %s", url, links)
 	// fmt.Printf("\nContent for %s: %s", url, content)
 
-	return q.ProcessedQueueItem{
+	return q.CrawledQueueItem{
 		URL:       url,
 		Timestamp: time.Now(),
 		Content:   content,
