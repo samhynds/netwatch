@@ -5,6 +5,7 @@ import (
 	"log"
 	"netwatch/internal/pkg/config"
 	"netwatch/internal/pkg/crawl"
+	"netwatch/internal/pkg/queue"
 	"netwatch/internal/pkg/ratelimiter"
 	"netwatch/internal/pkg/transporter"
 	"os"
@@ -29,8 +30,10 @@ func main() {
 	}
 
 	// Set up channels for crawling and transporting
-	crawlManager := crawl.NewManager(cfg)
-	transportManager := transporter.NewManager(cfg)
+	// crawlManager := crawl.NewManager(cfg)
+	// transportManager := transporter.NewManager(cfg)
+	queues := queue.NewQueue(cfg)
+	queues.InitPopulation(cfg)
 
 	// Set up rate limiter
 	rateLimiter := ratelimiter.NewRateLimiter(
